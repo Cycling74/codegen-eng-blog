@@ -20,13 +20,23 @@ fs.readFile(program.input, { encoding: "utf8" }, (err, data) => {
 });
 
 const makePaintFunction = template(`
+	mgraphics.relative_coords = 1;
+
+	function calcAspect() {
+		var width = this.box.rect[2] - this.box.rect[0];
+		var height = this.box.rect[3] - this.box.rect[1];
+		return width/height;
+	}
+
 	function paint() {
+		const aspect = calcAspect();
+
 		%%statements%%
 	}
 `);
 
 const makeRectDrawStatements = template(`
-	mgraphics.rectangle(%%x%%, %%y%%, %%w%%, %%h%%);
+	mgraphics.rectangle(%%x%% * aspect, %%y%%, %%w%% * aspect, %%h%%);
 	mgraphics.fill();
 `);
 
@@ -39,16 +49,35 @@ const makeRectDrawStatements = template(`
 function translateSource(data: string, outPath: string) {
 
 	let paintStatements: t.Statement[] = [];
+	let viewBox: number[];
 
 	const parser = new html2.Parser({
 		onopentag(name: string, attribs: {[s: string]: string}) {
 			if (name === "rect") {
-				let x = t.numericLiteral(Number.parseFloat(attribs.x || "0"));
-				let y = t.numericLiteral(Number.parseFloat(attribs.y || "0"));
-				let w = t.numericLiteral(Number.parseFloat(attribs.width || "0"));
-				let h = t.numericLiteral(Number.parseFloat(attribs.height || "0"));
-				const rectStatements = makeRectDrawStatements({ x, y, w, h });
-				paintStatements = paintStatements.concat(rectStatements);
+
+				if (viewBox !== undefined) {
+					let x = t.numericLiteral(
+						2 * Number.parseFloat(attribs.x || "0") / viewBox[2] - 1
+					);
+					let y = t.numericLiteral(
+						1 - 2 * Number.parseFloat(attribs.y || "0") / viewBox[3]
+					);
+					let w = t.numericLiteral(
+						2 * Number.parseFloat(attribs.width || "0") / viewBox[2]
+					);
+					let h = t.numericLiteral(
+						2 * Number.parseFloat(attribs.height || "0") / viewBox[3]
+					);
+					const rectStatements = makeRectDrawStatements({ x, y, w, h });
+					paintStatements = paintStatements.concat(rectStatements);
+				} else {
+					console.warn("rect tag outside of svg parent tag with defined viewBox, skipping");
+				}
+			}
+
+			else if (name === "svg") {
+				// Split the viewbox string on spaces and convert to numbers
+				viewBox = attribs["viewbox"].split(" ").map(Number.parseFloat);
 			}
 		}
 	});
