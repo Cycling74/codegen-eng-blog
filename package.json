@@ -1,0 +1,19 @@
+{
+  "name": "codegen-blog",
+  "version": "0.1.0",
+  "description": "A step by step guide to getting started with code generation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "codegen",
+    "babel",
+    "ast"
+  ],
+  "author": "Cycling '74",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^6.0.0"
+  }
+}
