@@ -1,3 +1,4 @@
+import * as html2 from "htmlparser2";
 import * as fs from "fs";
 import { program } from "commander";
 program.version("0.1.0");
@@ -22,7 +23,26 @@ fs.readFile(program.input, { encoding: "utf8" }, (err, data) => {
  * @param outPath - Path to which we'd like our result to be written
  */
 function translateSource(data: string, outPath: string) {
-    fs.writeFile(outPath, data, { encoding: "utf8" }, () => {
+
+	let outputString = "function paint() {\n";
+
+	const parser = new html2.Parser({
+		onopentag(name: string, attribs: {[s: string]: string}) {
+			if (name === "rect") {
+				let x = Number.parseFloat(attribs.x || "0");
+				let y = Number.parseFloat(attribs.y || "0");
+				let w = Number.parseFloat(attribs.width || "0");
+				let h = Number.parseFloat(attribs.height || "0");
+				outputString += `\tmgraphics.rectangle(${x}, ${y}, ${w}, ${h});\n\tmgraphics.fill();\n`;
+			}
+		}
+	});
+
+	parser.parseComplete(data);
+
+	outputString += "}\n";
+
+    fs.writeFile(outPath, outputString, { encoding: "utf8" }, () => {
         console.log(`Wrote output to ${outPath}`);
     });
 }
